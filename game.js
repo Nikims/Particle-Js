@@ -1,4 +1,6 @@
 updates = 0;
+mousePositions = [];
+clock = "tick";
 class Particle {
   x = 0;
   y = 0;
@@ -7,7 +9,10 @@ class Particle {
   acellX = 0;
   acellY = 0;
   beenAliveFor = 0;
-
+  applyMomentum(momx, momY) {
+    this.speedX += momx;
+    this.speedY += momY;
+  }
   applyForce(forceX, forceY) {
     this.acellX += forceX;
     this.acellY += forceY;
@@ -29,7 +34,15 @@ class Particle {
   constructor(source) {
     this.x = source.x;
     this.y = source.y;
+    this.speedX = Math.random() * 10 - 5;
+    this.speedY = Math.random() * 10 - 5;
     this.applyForce(0, 0.3);
+    if (mousePositions[0] != undefined && mousePositions[1] != undefined) {
+      this.applyMomentum(
+        0.6 * (mouseX - mousePositions[0].x),
+        0.6 * (mouseY - mousePositions[0].y)
+      );
+    }
   }
 }
 
@@ -40,8 +53,6 @@ class ParticleSystem {
     this.source = source;
     for (let i = 0; i < 20 + Math.round(Math.random() * 80); i++) {
       this.particles.push(new Particle(this.source));
-      this.particles[i].speedX = Math.random() * 10 - 5;
-      this.particles[i].speedY = Math.random() * 10 - 5;
     }
   }
   updateParticles() {
@@ -64,6 +75,19 @@ class ParticleSystem {
 }
 particleSystems = [];
 function update() {
+  if (updates % 2 == 0) {
+    if (clock == "tick") {
+      clock = "tock";
+    } else {
+      clock = "tick";
+    }
+  }
+  if (clock == "tick") {
+    mousePositions[0] = { x: mouseX, y: mouseY };
+  } else {
+    mousePositions[1] = { x: mouseX, y: mouseY };
+  }
+
   for (i = 0; i < particleSystems.length; i++) {
     particleSystems[i].updateParticles();
   }
