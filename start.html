@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<!-- Свали последната версия от:	  https://github.com/StanislavNikolov/gamedev_pishtov -->
+<!-- Download the latest verion from: https://github.com/StanislavNikolov/gamedev_pishtov -->
+<html>
+<head>
+	<style>
+		body, canvas {
+			margin: 0;
+			padding: 0;
+			overflow: hidden;
+		}
+	</style>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+	<meta charset="UTF-8"></meta> <!-- allows for cyrillic and other exotic text in console.logs -->
+</head>
+
+<body onload="init()">
+	<canvas id="canvas-id" width="800" height="600"></canvas>
+	<script>
+		function areColliding(Ax, Ay, Awidth, Aheight, Bx, By, Bwidth, Bheight) {
+			if (Bx <= Ax + Awidth) {
+				if (Ax <= Bx + Bwidth) {
+					if (By <= Ay + Aheight) {
+						if (Ay <= By + Bheight) {
+							return 1;
+						}
+					}
+				}
+			}
+			return 0;
+		};
+
+		function randomInteger(upTo){
+			return Math.floor(Math.random()*upTo);
+		}
+
+		function drawLine(startX, startY, endX, endY) {
+			// For better performance bunch calls to lineTo WITHOUT beginPath() and stroke() inbetween.
+			context.beginPath(); // resets the current path
+			context.moveTo(startX, startY);
+			context.lineTo(endX, endY);
+			context.stroke();
+		}
+
+		function tryToLoad(imageNameWithoutDotPng, backupColor) {
+			return tryToLoadWithFullPath(imageNameWithoutDotPng + '.png', backupColor);
+		}
+
+		function tryToLoadWithFullPath(imageNameAndPath, backupColor) {
+			return {
+				img   : new Image(),
+				src   : "images/" + imageNameAndPath,
+				color : backupColor,
+				needed: false // flag letting know drawImage to request the actual image if ever used
+			};
+		}
+
+		function drawImage(img, x, y, xs, ys) {
+			if(img == null) {
+				// invalid image
+				console.error('Tried to draw invalid image');
+				return;
+			}
+
+			if(img.needed !== true) {
+				img.needed = true;
+				img.img.src = img.src;
+			}
+
+			try {
+				if (xs != null) context.drawImage(img.img, x, y, xs, ys);
+				else            context.drawImage(img.img, x, y);
+			} catch(e) {
+				context.fillStyle = img.color;
+				if(xs == null) {
+					xs = 100;
+					ys = 100;
+				}
+				context.fillRect(x, y, xs, ys);
+			}
+		}
+
+		const assets = [
+			["arrowDown","black"],
+			["arrowDownLeft","black"],
+			["arrowDownRight","black"],
+			["arrowLeft","black"],
+			["arrowRight","black"],
+			["arrowUp","black"],
+			["arrowUpLeft","black"],
+			["arrowUpRight","black"],
+			["backAlien","blue"],
+			["backBeach","blue"],
+			["backCactus","orange"],
+			["backCake","pink"],
+			["backClouds","blue"],
+			["backDesert","orange"],
+			["backForest","green"],
+			["backGrass","green"],
+			["backHills","orange"],
+			["backIndustry","blue"],
+			["backMarket","yellow"],
+			["backMountain","green"],
+			["backMushrooms","yellow"],
+			["backNight","blue"],
+			["backSea","blue"],
+			["backSpikes","brown"],
+			["backStars","black"],
+			["backSun","purple"],
+			["backSunset","brown"],
+			["backTower","blue"],
+			["backTrees","blue"],
+			["backWaterfall","blue"],
+			["backWaves","blue"],
+			["ballOrTarget","blue"],
+			["ballOrTree","green"],
+			["barrelGreen","green"],
+			["barrelGrey","gray"],
+			["barrelRed","red"],
+			["bee","yellow"],
+			["bird","brown"],
+			["bomb","gray"],
+			["box","brown"],
+			["boxAlienGreenSuit","green"],
+			["boxAlienYellowSquare","yellow"],
+			["boxAlienYellowSuit","yellow"],
+			["boxItem","yellow"],
+			["boxItemBoxed","yellow"],
+			["boxItemDisabled","gray"],
+			["boxItemDisabledBoxed","gray"],
+			["building","gray", "0"],
+			["building","gray", "1"],
+			["building","gray", "2"],
+			["building","gray", "3"],
+			["bullet","green"],
+			["burgerBronze","brown"],
+			["burgerGold","yellow"],
+			["burgerSilver","gray"],
+			["bush1","red"],
+			["bush2","orange"],
+			["cactus","green"],
+			["cat","orange"],
+			["carBlack","black"],
+			["carBlue","blue"],
+			["carBody","red"],
+			["carGreen","green"],
+			["carRed","red"],
+			["carYellow","yellow"],
+			["cherry","orange"],
+			["cloud","white"],
+			["crosshairBlue","blue"],
+			["crosshairOutline","white"],
+			["crystal","green"],
+			["duckOutlineTarget","green"],
+			["duckTarget","green"],
+			["enemyBlack1","black"],
+			["enemyBlack2","black"],
+			["enemyBlack3","black"],
+			["enemyBlack4","black"],
+			["enemyBlack5","black"],
+			["enemyBlue1","blue"],
+			["enemyBlue2","blue"],
+			["enemyBlue3","blue"],
+			["enemyBlue4","blue"],
+			["enemyBlue5","blue"],
+			["enemyGreen1","green"],
+			["enemyGreen2","green"],
+			["enemyGreen3","green"],
+			["enemyGreen4","green"],
+			["enemyGreen5","green"],
+			["enemyRed1","red"],
+			["enemyRed2","red"],
+			["enemyRed3","red"],
+			["enemyRed4","red"],
+			["enemyRed5","red"],
+			["explosion","red"],
+			["explosion1","red"],
+			["explosion2","red"],
+			["femaleAction","blue"],
+			["femaleJump","blue"],
+			["femaleStand","blue"],
+			["femaleWalk1","blue"],
+			["flagBlue1","blue"],
+			["flagGreen1","green"],
+			["flagRed1","red"],
+			["flagYellow1","yellow"],
+			["flagYellow2","yellow"],
+			["flower1","pink"],
+			["flower2","brown"],
+			["flower3","yellow"],
+			["flower4","red"],
+			["flower5","orange"],
+			["flowerBlue","blue"],
+			["flowerPurple","purple"],
+			["flowerRed","red"],
+			["flowerSmall","blue"],
+			["flyMan","orange"],
+			["gemBlue","blue"],
+			["gemGreen","green"],
+			["gemRed","red"],
+			["gemYellow","yellow"],
+			["gem","blue", "0"],
+			["gem","green", "10"],
+			["gem","blue", "11"],
+			["gem","green", "12"],
+			["gem","blue", "13"],
+			["gem","green", "14"],
+			["gem","blue", "15"],
+			["gem","green", "16"],
+			["gem","blue", "17"],
+			["gem","green", "18"],
+			["gem","blue", "19"],
+			["gem","green", "1"],
+			["gem","blue", "20"],
+			["gem","green", "21"],
+			["gem","blue", "22"],
+			["gem","green", "23"],
+			["gem","blue", "24"],
+			["gem","green", "25"],
+			["gem","blue", "26"],
+			["gem","green", "27"],
+			["gem","blue", "28"],
+			["gem","green", "29"],
+			["gem","blue", "2"],
+			["gem","green", "30"],
+			["gem","blue", "31"],
+			["gem","green", "32"],
+			["gem","blue", "33"],
+			["gem","green", "34"],
+			["gem","blue", "35"],
+			["gem","green", "36"],
+			["gem","blue", "37"],
+			["gem","green", "38"],
+			["gem","blue", "39"],
+			["gem","green", "3"],
+			["gem","blue", "40"],
+			["gem","green", "41"],
+			["gem","blue", "42"],
+			["gem","green", "43"],
+			["gem","blue", "44"],
+			["gem","green", "45"],
+			["gem","blue", "46"],
+			["gem","green", "47"],
+			["gem","blue", "4"],
+			["gem","green", "5"],
+			["gem","blue", "6"],
+			["gem","green", "7"],
+			["gem","blue", "8"],
+			["gem","green", "9"],
+			["grass","green"],
+			["groundCake","pink"],
+			["groundGrass","green"],
+			["groundSnow","white"],
+			["groundStone","gray"],
+			["gummyWorm","pink"],
+			["heart","red"],
+			["heartSmall","red"],
+			["heroHello","blue"],
+			["heroStand","blue"],
+			["heroWalk","blue"],
+			["house","green", "0"],
+			["house","blue", "1"],
+			["house","gray", "2"],
+			["house","brown", "3"],
+			["house","red", "4"],
+			["jelly","gray", "0"],
+			["jelly","yellow", "1"],
+			["jelly","green", "2"],
+			["jelly","red", "3"],
+			["jelly","blue", "4"],
+			["jelly","purple", "5"],
+			["jetpack","gray"],
+			["jewelBlue","blue"],
+			["jewelGreen","green"],
+			["jewelRed","red"],
+			["jewelYellow","yellow"],
+			["joystick","black"],
+			["laserBlue","blue", "0"],
+			["laserBlue","blue", "1"],
+			["laserBlue","blue", "2"],
+			["laserGreen","green", "0"],
+			["laserGreen","green", "1"],
+			["laserGreen","green", "2"],
+			["laserRed","red", "0"],
+			["laserRed","red", "1"],
+			["laserRed","red", "2"],
+			["lava","red"],
+			["lollipopFruitYellow","yellow"],
+			["missile","red", "0"],
+			["missile","blue", "1"],
+			["missile","blue", "2"],
+			["missile","blue", "3"],
+			["missile","blue", "4"],
+			["missile","blue", "5"],
+			["missile","blue", "6"],
+			["missile","red", "7"],
+			["missile","red", "8"],
+			["missile","red", "9"],
+			["motorBlack","black"],
+			["motorBlue","blue"],
+			["motorGreen","green"],
+			["motorRed","red"],
+			["motorYellow","yellow"],
+			["ninja","purple", "0"],
+			["ninja","purple", "1"],
+			["ninja","purple", "2"],
+			["ninja","purple", "3"],
+			["ninja","purple", "4"],
+			["ninja","purple", "5"],
+			["ninja","purple", "6"],
+			["ninja","purple", "7"],
+			["ninja","purple", "8"],
+			["ninja","purple", "9"],
+			["note","black"],
+			["paddle","blue"],
+			["parrot","blue"],
+			["pillBlue","blue"],
+			["pillGreen","green"],
+			["pillRed","red"],
+			["pillYellow","yellow"],
+			["pirate","brown", "0"],
+			["pirate","brown", "10"],
+			["pirate","brown", "11"],
+			["pirate","brown", "12"],
+			["pirate","brown", "13"],
+			["pirate","brown", "14"],
+			["pirate","brown", "15"],
+			["pirate","brown", "1"],
+			["pirate","brown", "2"],
+			["pirate","brown", "3"],
+			["pirate","brown", "4"],
+			["pirate","brown", "5"],
+			["pirate","brown", "6"],
+			["pirate","brown", "7"],
+			["pirate","brown", "8"],
+			["pirate","brown", "9"],
+			["pirateHero","green"],
+			["plane","green"],
+			["planeGray","gray"],
+			["planeGreen","green"],
+			["playerShip1_blue","blue"],
+			["playerShip1_green","green"],
+			["playerShip1_orange","orange"],
+			["playerShip1_red","red"],
+			["playerShip2_blue","blue"],
+			["playerShip2_green","green"],
+			["playerShip2_orange","orange"],
+			["playerShip2_red","red"],
+			["playerShip3_blue","blue"],
+			["playerShip3_green","green"],
+			["playerShip3_orange","orange"],
+			["playerShip3_red","red"],
+			["powerupBlue","blue"],
+			["powerupBlueBolt","blue"],
+			["powerupBlueShield","blue"],
+			["powerupBlueStar","blue"],
+			["powerupGreen","green"],
+			["powerupGreenBolt","green"],
+			["powerupGreenShield","green"],
+			["powerupGreenStar","green"],
+			["powerupRed","red"],
+			["powerupRedBolt","red"],
+			["powerupRedShield","red"],
+			["powerupRedStar","red"],
+			["powerupYellowShield","yellow"],
+			["powerupYellow","yellow"],
+			["powerupYellowBolt","yellow"],
+			["powerupYellowStar","yellow"],
+			["princess","pink", "0"],
+			["princess","pink", "10"],
+			["princess","pink", "11"],
+			["princess","pink", "12"],
+			["princess","pink", "13"],
+			["princess","pink", "14"],
+			["princess","pink", "15"],
+			["princess","pink", "16"],
+			["princess","pink", "17"],
+			["princess","pink", "18"],
+			["princess","pink", "19"],
+			["princess","pink", "1"],
+			["princess","pink", "2"],
+			["princess","pink", "3"],
+			["princess","pink", "4"],
+			["princess","pink", "5"],
+			["princess","pink", "6"],
+			["princess","pink", "7"],
+			["princess","pink", "8"],
+			["princess","pink", "9"],
+			["repair","blue"],
+			["robot","blue"],
+			["robotJump","blue"],
+			["robotHero","yellow", "0"],
+			["robotHero","yellow", "1"],
+			["robotHero","yellow", "2"],
+			["robotHero","yellow", "3"],
+			["robotHero","yellow", "4"],
+			["robotHero","yellow", "5"],
+			["robotHero","yellow", "6"],
+			["robotHero","yellow", "7"],
+			["rock","gray"],
+			["rocket","red", "0"],
+			["rocket","red", "1"],
+			["rocket","red", "2"],
+			["rocket","red", "3"],
+			["sailor","red"],
+			["scrollHorizontal","black"],
+			["scrollVertical","black"],
+			["shieldBronze","brown"],
+			["shieldGold","yellow"],
+			["shieldSilver","gray"],
+			["shooter","brown"],
+			["shop","red"],
+			["sign","brown"],
+			["signExit","brown"],
+			["signLeft","brown"],
+			["signRight","brown"],
+			["spaceship","red", "0"],
+			["spaceship","red", "1"],
+			["spaceship","red", "2"],
+			["spaceship","red", "3"],
+			["spaceship","red", "4"],
+			["spaceship","red", "5"],
+			["spaceship","red", "6"],
+			["spaceship","red", "7"],
+			["spaceship","red", "8"],
+			["spaceship","red", "9"],
+			["spaceStation","blue", "0"],
+			["spaceStation","yellow", "1"],
+			["spaceStation","blue", "2"],
+			["spaceStation","yellow", "3"],
+			["spikeMan","red"],
+			["spring","orange"],
+			["springMan","orange"],
+			["sprung","orange"],
+			["spy","black", "0"],
+			["spy","black", "1"],
+			["spy","black", "2"],
+			["spy","black", "3"],
+			["spy","black", "4"],
+			["spy","black", "5"],
+			["spy","black", "6"],
+			["spy","black", "7"],
+			["spy","black", "8"],
+			["spy","black", "9"],
+			["star","yellow"],
+			["starBronze","brown"],
+			["starDiamond","blue"],
+			["starGold","yellow"],
+			["starSilver","gray"],
+			["sun","yellow"],
+			["tanksAmmo","black"],
+			["tanksArmor","red"],
+			["tank","gray", "0"],
+			["tank","gray", "1"],
+			["tank","green", "2"],
+			["tank","green", "3"],
+			["tank","red", "4"],
+			["tank","red", "5"],
+			["tank","black", "6"],
+			["tank","black", "7"],
+			["thunderBronze","brown"],
+			["thunderGold","yellow"],
+			["thunderGray","gray"],
+			["torch","red"],
+			["torchOff","brown"],
+			["tree","orange", "0"],
+			["tree","red", "1"],
+			["tree","yellow", "2"],
+			["tree","green", "3"],
+			["tree","brown", "4"],
+			["troll","green"],
+			["vehicle","gray", "0"],
+			["vehicle","gray", "10"],
+			["vehicle","gray", "11"],
+			["vehicle","gray", "12"],
+			["vehicle","gray", "13"],
+			["vehicle","gray", "14"],
+			["vehicle","gray", "15"],
+			["vehicle","gray", "1"],
+			["vehicle","gray", "2"],
+			["vehicle","gray", "3"],
+			["vehicle","gray", "4"],
+			["vehicle","gray", "5"],
+			["vehicle","gray", "6"],
+			["vehicle","gray", "7"],
+			["vehicle","gray", "8"],
+			["vehicle","gray", "9"],
+			["volcano","black"],
+			["zombie","green"],
+			["zombieHello","green"],
+			["zombieWalk","green"],
+		];
+
+		// load assets (sprites) as global variables
+		for(const asset of assets) {
+			const name = asset[0];
+			const backupColor = asset[1];
+			const index = asset[2];
+			if(asset.length === 2) { // normal image
+				window[name] = tryToLoad(name, backupColor);
+			}
+			if(asset.length === 3) { // array of images
+				if(window[name] == null) {
+					window[name] = [];
+				}
+				window[name][Number(index)] = tryToLoad(`${name}[${index}]`, backupColor);
+			}
+		}
+
+		let endlessCanvas = false;
+		let updateTime = 10; // in ms
+
+		const canvas = document.getElementById("canvas-id");
+		const context = canvas.getContext("2d");
+		context.fillStyle = "#0000ff";
+		// global variables with mouse coordinates
+		let mouseX = 0;
+		let mouseY = 0;
+		// some keycodes
+		let key_left = 37;
+		let key_up = 38;
+		let key_right = 39;
+		let key_down = 40;
+		let key_a = 65;
+		let key_z = 90;
+		let isKeyPressed = [];
+		for (i = 0; i < 256; ++i) {
+			isKeyPressed.push(0);
+		}
+		// gridSize = 50; // uncomment or add to game.js if you want a grid
+		const reqAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame || function (callback) {
+			setTimeout(callback, 1000 / 30);
+		};
+		function redraw() {
+			context.clearRect(0, 0, canvas.width, canvas.height);
+			draw(); // call progammer's draw() function
+			context.globalAlpha = 1;
+			// draw grid
+			//context.fillStyle = "#FF0000";
+			context.font = "10px Arial";
+			if (typeof gridSize != "undefined" && gridSize >= 25) {
+				context.fillText(0, 4, 10);
+				context.beginPath();
+				for(i = gridSize;i < canvas.width;i += gridSize) {
+					context.moveTo(i, 0);
+					context.lineTo(i, canvas.height);
+					context.fillText(i, i + 4, 10);
+				}
+				for(i = gridSize;i < canvas.height;i += gridSize) {
+					context.moveTo(0, i);
+					context.lineTo(canvas.width, i);
+					context.fillText(i, 4, i + 10);
+				}
+				context.stroke();
+			}
+
+			reqAnimationFrame(redraw);
+		};
+
+		function init() {
+			if (endlessCanvas) {
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+				window.onresize = function () {
+					canvas.width = window.innerWidth;
+					canvas.height = window.innerHeight;
+				};
+			} else {
+				canvas.width = 800;
+				canvas.height = 600;
+			}
+			if ('ontouchstart' in window || navigator.maxTouchPoints) {
+				isMobile = true;
+				window.addEventListener("touchstart", function (e) {
+					let touchobj = e.changedTouches[0];
+					mouseX = parseInt(touchobj.pageX - canvas.offsetLeft);
+					mouseY = parseInt(touchobj.pageY - canvas.offsetTop);
+					mousedown();
+				});
+				window.addEventListener("touchend", function (e) {
+					let touchobj = e.changedTouches[0];
+					mouseX = parseInt(touchobj.pageX - canvas.offsetLeft);
+					mouseY = parseInt(touchobj.pageY - canvas.offsetTop);
+					mouseup();
+				});
+				window.addEventListener("touchmove", function (e) {
+					let touchobj = e.changedTouches[0];
+					mouseX = parseInt(touchobj.pageX - canvas.offsetLeft);
+					mouseY = parseInt(touchobj.pageY - canvas.offsetTop);
+				});
+			}
+			window.addEventListener("mousemove", function (e) {
+				mouseX = e.pageX - canvas.offsetLeft;
+				mouseY = e.pageY - canvas.offsetTop;
+			});
+			if(typeof mousemove != "undefined") {
+				window.addEventListener("mousemove", mousemove);
+			}
+			if(typeof mouseup != "undefined") {
+				window.addEventListener("mouseup", mouseup);
+			}
+			if(typeof mousedown != "undefined") {
+				window.addEventListener("mousedown", mousedown);
+			}
+			if(typeof keydown != "undefined") {
+				window.addEventListener("keydown", function (e) {
+					isKeyPressed[e.keyCode] = 1;
+					keydown(e.keyCode);
+				});
+			} else {
+				window.addEventListener("keydown", function (e) {
+					isKeyPressed[e.keyCode] = 1;
+				});
+			}
+			if(typeof keyup != "undefined") {
+				window.addEventListener("keyup", function (e) {
+					isKeyPressed[e.keyCode] = 0;
+					keyup(e.keyCode);
+				});
+			} else {
+				window.addEventListener("keyup", function (e) {
+					isKeyPressed[e.keyCode] = 0;
+				});
+			}
+			if(typeof draw == "undefined") {
+				redraw = function () {
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					context.globalAlpha = 1;
+					context.fillStyle = "#FF0000";
+					context.font = "20px Arial";
+					context.fillText("Press <F12> for error info!", 40, 40);
+				};
+			}
+			redraw();
+			setInterval(update, updateTime);
+		}
+		</script>
+
+		<!-- user's game file -->
+		<script src="./game.js"></script>
+</body>
+
+</html>
