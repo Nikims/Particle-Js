@@ -38,10 +38,22 @@ class Particle {
     this.speedY = Math.random() * 10 - 5;
     this.applyForce(0, 0.3);
     if (mousePositions[0] != undefined && mousePositions[1] != undefined) {
-      this.applyMomentum(
-        0.6 * (mouseX - mousePositions[0].x),
-        0.6 * (mouseY - mousePositions[0].y)
-      );
+      if (
+        Math.sqrt(
+          Math.pow(mouseX - mousePositions[0].x, 2) +
+            Math.pow(mouseY - mousePositions[0].y, 2)
+        ) < 20
+      ) {
+        this.applyMomentum(
+          0.9 * (mouseX - mousePositions[0].x),
+          0.9 * (mouseY - mousePositions[0].y)
+        );
+      } else {
+        this.applyMomentum(
+          0.3 * (mouseX - mousePositions[0].x),
+          0.3 * (mouseY - mousePositions[0].y)
+        );
+      }
     }
   }
 }
@@ -61,7 +73,7 @@ class ParticleSystem {
 
       if (
         this.particles[i].beenAliveFor >
-        100 + Math.round(Math.random() * 20)
+        150 + Math.round(Math.random() * 20)
       ) {
         this.particles.splice(i, 1);
       }
